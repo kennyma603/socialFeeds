@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/socialFeeds.js"></script>
+
+	<script type="text/javascript">
+	(function($){
+		$(document).ready(function(){
+			$("#socialFeeds-Wrapper").socialFeeds({
+				background: 'blue',
+				twitter_options : {
+					users : ["vancity_therapy","jquery4u"],
+				},
+			});
+		});
+	})(jQuery);
+	</script>
+</head>
+
+<body>
+	<div id="socialFeeds-Wrapper">hello</div>
+</body>
+</html>
