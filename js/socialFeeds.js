@@ -8,7 +8,8 @@ if(typeof console === "undefined") {
 var Twitter = (function($, window){
 
 	var options = {
-		num_feeds : 5,
+		showDate : true,
+		showUserName : true
 	}
 
 	var num_users = 1;
@@ -22,7 +23,6 @@ var Twitter = (function($, window){
 		
 	}
 
-
 	getTwitterPromise = function(){
 		var allAjaxCalls = [];
 
@@ -30,39 +30,43 @@ var Twitter = (function($, window){
 
 			var url = "https://search.twitter.com/search.json?include_entities=true&"
 				+"from=" + options.users[i]
-				+"&rpp=" + Math.ceil(options.num_feeds / num_users)
+				+"&rpp=" + options.num_feeds
 				+"&with_twitter_user_id=true"
 				+"&callback=?";
 			var tempajax = $.getJSON( url );
 			allAjaxCalls.push(tempajax);
 
 			$.when(tempajax).then(function (data) { 
-				for (var i=0, length=data.results.length; i<length; i++) {
-					twitterObjArr.push(data.results[i]);
-				}
+				console.log(data);
+				renderTwitterObjs(data);
 			});
 		}
 
 		return $.when.apply(null, allAjaxCalls);	
 	}
 
-	getTwitterObjs = function(){
-		this.twitterObjArr.goodDate = "hi";
+	var renderTwitterObjs = function(data){
+		for(var i=0, length=data.results.length; i<length; i++){
+			twitterObjArr.push(data.results[i]);
 
-		for(var i=0; i<this.twitterObjArr.length; i++){
-			var currObj = this.twitterObjArr[i];
+			var currObj = data.results[i];
+
 			var created_at = currObj.created_at;
 			var text = currObj.text;
 			var from_user = currObj.from_user;
 			var $itemHtml = $('<div class="tweetItem"></div>');
 
 			$itemHtml.append('<div class="itemBody">'+ text +'</div>');
-			$itemHtml.append('<div class="itemTime">'+ created_at +'</div>');
-			$itemHtml.append('<div class="itemFromUser">'+ from_user +'</div>');
 
-			this.twitterObjArr[i].validDateForSorting = created_at;
-			this.twitterObjArr[i].itemHtml = $itemHtml;
-			console.log(this.twitterObjArr[i]);
+			if(options.showDate == true)
+				$itemHtml.append('<div class="itemTime">'+ created_at +'</div>');
+			if(options.showUserName == true)
+				$itemHtml.append('<div class="itemFromUser">'+ from_user +'</div>');
+
+			currObj.validDateForSorting = created_at;
+			currObj.itemHtml = $itemHtml;
+
+			twitterObjArr.push(currObj);
 		}
 	}
 
@@ -78,7 +82,7 @@ var Twitter = (function($, window){
 		var twitterPromises;
 		var $obj = $(this);
 		options = {
-			background: 'red',
+			num_feeds: 8,
 			twitter_options : {},
 		};	
 
@@ -86,26 +90,27 @@ var Twitter = (function($, window){
 
 		var getTwitterPromises = function(){
 			var deferred = $.Deferred();
+			var user_twitter_options = options.twitter_options;
+			user_twitter_options.num_feeds = options.num_feeds; // add this info to twitter_options
 			
-						Twitter.init(options.twitter_options);
+			Twitter.init(user_twitter_options);
 
-						Twitter.twitterPromise.then(
-							function (data) {
-								allSocialFeedsPromise.push(Twitter.twitterPromise);
-								console.log(allSocialFeedsPromise);
-								Twitter.getTwitterObjs();
+			Twitter.twitterPromise.then(
+				function (data) {
+					allSocialFeedsPromise.push(Twitter.twitterPromise);
+					console.log(allSocialFeedsPromise);
+					
 
-								for(var i=0; i<Twitter.twitterObjArr.length; i++){
-									allSocialFeedsObjArr.push(Twitter.twitterObjArr[i]);
-								}
+					for(var i=0; i<Twitter.twitterObjArr.length; i++){
+						allSocialFeedsObjArr.push(Twitter.twitterObjArr[i]);
+					}
 
-								deferred.resolve();
-							},
-							function () {
-								console.log('bad');
-								//return "<h2>bad</h2>";
-							}
-						);	
+					deferred.resolve();
+				},
+				function () {
+					console.log('failed');
+				}
+			);	
 			return deferred.promise();
 		}		
 

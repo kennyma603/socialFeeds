@@ -9,9 +9,11 @@
 	(function($){
 		$(document).ready(function(){
 			$("#socialFeeds-Wrapper").socialFeeds({
-				background: 'blue',
+				num_feeds: 10,
 				twitter_options : {
 					users : ["vancity_therapy","jquery4u"],
+					showDate: true,
+					showUserName: true
 				},
 			});
 		});
