@@ -12,18 +12,15 @@ var Twitter = (function($, window){
 		showUserName : true
 	}
 
-	var num_users = 1;
 	this.twitterObjArr = [];
 	this.twitterPromise;
 
 	init = function(userOptions){
 		options = $.extend(options, userOptions || {});
-		num_users = options.users.length;
 		twitterPromise = getTwitterPromise();
-		
 	}
 
-	getTwitterPromise = function(){
+	var getTwitterPromise = function(){
 		var allAjaxCalls = [];
 
 		for (var i=0, length=options.users.length; i<length; i++) {
@@ -42,7 +39,7 @@ var Twitter = (function($, window){
 			});
 		}
 
-		return $.when.apply(null, allAjaxCalls);	
+		return $.when.apply(null, allAjaxCalls); // return ajax promises when the calls are finished	
 	}
 
 	var renderTwitterObjs = function(data){
@@ -66,7 +63,7 @@ var Twitter = (function($, window){
 			currObj.validDateForSorting = created_at;
 			currObj.itemHtml = $itemHtml;
 
-			twitterObjArr.push(currObj);
+			twitterObjArr.push(currObj); //add modified twitter json objs to twitterObjArr. will be used later.
 		}
 	}
 
@@ -116,9 +113,6 @@ var Twitter = (function($, window){
 
 
 		return this.each(function(){
-			console.log(options.background);
-						
-			
 			
 			if( !$.isEmptyObject(options.twitter_options.users)){
 
@@ -140,8 +134,6 @@ var Twitter = (function($, window){
 
 				}
 			);
-
-
 			
 		});
 
