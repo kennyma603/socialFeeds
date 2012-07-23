@@ -148,6 +148,119 @@ var Pinterest = (function($, window){
 })(jQuery, window);
 
 
+var Instagram = (function($, window){
+	var self = {};
+
+	var options = {
+		showDate : true,
+		showUserName : true,
+		showImage : true,
+		hyperlinkImage : true,
+		imageSize: "small",
+		showLikes: true,
+		showTotalLikes: true
+	}
+
+	self.instagramObjArr = [];
+	self.instagramPromise;
+
+	self.init = function(userOptions){
+		console.log("instagram init");
+		options = $.extend(options, userOptions || {});
+		self.instagramPromise = getInstagramPromise();
+	}
+
+	var getInstagramPromise = function(){
+		var allAjaxCalls = [];
+		var accessToken = "197019245.28c53d9.cf82bfb63efc410f934eec52d416b12b";
+		var userID = options.users[i];
+		var count = options.num_feeds;
+
+		for (var i=0, length=options.users.length; i<length; i++) {
+
+			var url = "https://api.instagram.com/v1/users/"
+				+ options.users[i] + "/media/recent/?access_token="
+				+ accessToken
+				+"&count=" + count;
+			
+
+			var tempajax = $.ajax({
+			  type: "GET",
+			  dataType: "jsonp",
+			  cache: false,
+			  url: url
+			  
+			});
+
+			allAjaxCalls.push(tempajax);
+			console.log(url);
+
+			$.when(tempajax).then(function (data) { 
+				console.log(data);
+				renderInstagramObjs(data);
+			});
+		}
+
+		return $.when.apply(null, allAjaxCalls); // return ajax promises when the calls are finished	
+	}
+
+	var renderInstagramObjs = function(data){
+		console.log(data);
+		var totalLikes = 0;
+		for(var i=0, length=data.data.length; i<length; i++){
+
+			var currObj = data.data[i];
+
+			var created_at = currObj.created_time;
+			var text = currObj.caption;
+			var from_user = currObj.user.username;
+			var post_link = currObj.link;
+			var image_like = currObj.likes.count;
+
+			totalLikes = totalLikes + image_like;
+
+			if(currObj.caption != null)
+				text = currObj.caption.text;
+
+			var image_url = "";
+			if (options.imageSize == "medium")
+				image_url = currObj.images.low_resolution.url;
+			else if (options.imageSize == "large")
+				image_url = currObj.images.standard_resolution.url;
+			else 
+				image_url = currObj.images.thumbnail.url;
+
+
+			var $itemHtml = $('<div class="tweetItem"></div>');
+
+			$itemHtml.append('<div class="itemBody">'+ text +'</div>');
+
+			if(options.showDate == true)
+				$itemHtml.append('<div class="itemTime">'+ created_at +'</div>');
+			if(options.showUserName == true)
+				$itemHtml.append('<div class="itemFromUser">'+ from_user +'</div>');
+			if(options.showImage == true) //add image
+				if(options.hyperlinkImage == true) // add link to image
+					$itemHtml.append('<div class="itemImage"><a href="' + currObj.link + '" target="_blank"> \
+						<img src="'+ image_url +'"/></a></div>');
+				else // no link to image
+				$itemHtml.append('<div class="itemImage"><img src="'+ image_url +'"/></div>');
+
+			if(options.showLikes == true)
+				$itemHtml.append('<div class="itemLikesNum">'+ image_like +'</div>');
+
+			currObj.validDateForSorting = created_at;
+			currObj.itemHtml = $itemHtml;
+
+			self.instagramObjArr.push(currObj); //add modified twitter json objs to twitterObjArr. will be used later.
+		}
+	}
+
+	return self;
+
+})(jQuery, window);
+
+
 (function($, window, undefined){
 	$.fn.socialFeeds = function(userOptions){
 		var allSocialFeedsObjArr = [];
@@ -155,11 +268,13 @@ var Pinterest = (function($, window){
 		var $socialFeedsHtml = $('<div class="allFeeds"></div>');
 		var twitterPromises;
 		var pinterestPromises;
+		var instagramPromises;
 		var $obj = $(this);
 		options = {
 			num_feeds: 8,
 			twitter_options : {},
 			pinterest_options : {},
+			instagram_options : {}
 		};	
 
 		options = $.extend(options, userOptions || {});
@@ -169,7 +284,6 @@ var Pinterest = (function($, window){
 			var deferred = $.Deferred();
 			var user_twitter_options = options.twitter_options;
 			user_twitter_options.num_feeds = options.num_feeds; // add this info to twitter_options
-			console.log("2");
 			Twitter.init(user_twitter_options);
 			
 
@@ -216,13 +330,38 @@ var Pinterest = (function($, window){
 				}
 			);	
 			return deferred.promise();
+		}	
+
+		var getInstagramPromises = function(){
+			var deferred = $.Deferred();
+			var user_instagram_options = options.instagram_options;
+			user_instagram_options.num_feeds = options.num_feeds; // add this info to twitter_options
+			
+			Instagram.init(user_instagram_options);
+
+			Instagram.instagramPromise.then(
+				function (data) {
+					allSocialFeedsPromise.push(Instagram.instagramPromise);
+					console.log(allSocialFeedsPromise);
+					
+
+					for(var i=0; i<Instagram.instagramObjArr.length; i++){
+						allSocialFeedsObjArr.push(Instagram.instagramObjArr[i]);
+					}
+
+					deferred.resolve();
+				},
+				function () {
+					console.log('failed');
+				}
+			);	
+			return deferred.promise();
 		}		
 
 
 		return this.each(function(){
 			
 			if( !$.isEmptyObject(options.twitter_options.users)){
-				console.log("1");
 				twitterPromises = getTwitterPromises();
 				allSocialFeedsPromise.push(twitterPromises);
 
@@ -231,6 +370,12 @@ var Pinterest = (function($, window){
 
 				pinterestPromises = getPinterestPromises();
 				allSocialFeedsPromise.push(pinterestPromises);
+
+			}	
+			if( !$.isEmptyObject(options.instagram_options.users)){
+
+				instagramPromises = getInstagramPromises();
+				allSocialFeedsPromise.push(instagramPromises);
 
 			}		
 
